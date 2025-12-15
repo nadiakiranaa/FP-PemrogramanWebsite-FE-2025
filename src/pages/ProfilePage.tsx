@@ -33,7 +33,8 @@ export default function ProfilePage() {
         setLoading(true);
         const response = await api.get("/api/auth/me/game");
         setGamesCreated(response.data.meta.total);
-      } catch {
+      } catch (error) {
+        console.error("Failed to fetch games created:", error);
         toast.error("Failed to fetch games created.");
       } finally {
         setLoading(false);
@@ -63,7 +64,7 @@ export default function ProfilePage() {
                   <AvatarImage
                     src={
                       user?.profile_picture
-                        ? `${import.meta.env.VITE_API_URL}/${user.profile_picture}`
+                        ? `${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/${user.profile_picture}`
                         : undefined
                     }
                     alt="User Avatar"

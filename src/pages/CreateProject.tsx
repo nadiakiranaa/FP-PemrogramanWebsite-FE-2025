@@ -47,8 +47,9 @@ export default function CreateProject() {
         setLoading(true);
         const response = await api.get("/api/game/template");
         setTemplates(response.data.data);
-      } catch {
+      } catch (err) {
         setError("Failed to fetch game templates. Please try again later.");
+        console.error("Failed to fetch templates:", err);
       } finally {
         setLoading(false);
       }
@@ -58,8 +59,11 @@ export default function CreateProject() {
   }, []);
 
   const handleTemplateClick = (template: GameTemplate) => {
-    if (template.slug) {
-      navigate(`/create-${template.slug}`);
+    if (template.slug === "quiz") {
+      navigate("/create-quiz");
+    } else if (template.slug === "word-search") {
+      // Navigate ke halaman create Word Search (bukan langsung ke game)
+      navigate("/create-word-search");
     } else {
       toast.error(`${template.name} template is coming soon!`, {
         duration: 3000,
@@ -125,7 +129,7 @@ export default function CreateProject() {
                   onClick={() => handleTemplateClick(template)}
                 >
                   <div className="flex items-start gap-5">
-                    <div className="w-16 h-16 bg-sky-100 rounded-xl flex items-center justify-center shrink-0 group-hover:bg-sky-200 transition-colors">
+                    <div className="w-16 h-16 bg-sky-100 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-sky-200 transition-colors">
                       <IconComponent className="w-8 h-8 text-sky-600" />
                     </div>
                     <div className="pt-1">

@@ -32,8 +32,7 @@ type Project = {
   description: string;
   thumbnail_image: string | null;
   is_published: boolean;
-  game_template_name: string;
-  game_template_slug: string;
+  game_template: string;
 };
 
 export default function MyProjectsPage() {
@@ -47,9 +46,11 @@ export default function MyProjectsPage() {
       try {
         setLoading(true);
         const response = await api.get("/api/auth/me/game");
+        console.log('Fetched projects:', response.data.data);
         setProjects(response.data.data);
-      } catch {
+      } catch (err) {
         setError("Failed to fetch projects. Please try again later.");
+        console.error(err);
       } finally {
         setLoading(false);
       }
@@ -57,22 +58,33 @@ export default function MyProjectsPage() {
     fetchProjects();
   }, []);
 
-  const handleDeleteProject = async (
-    projectTemplate: string,
-    projectId: string,
-  ) => {
+  const handleDeleteProject = async (projectId: string, gameTemplate: string) => {
     try {
-      await api.delete(`/api/game/game-type/${projectTemplate}/${projectId}`);
+      // Delete endpoint berbeda berdasarkan game type
+      let endpoint = '';
+      if (gameTemplate === 'Quiz') {
+        endpoint = `/api/game/game-type/quiz/${projectId}`;
+      } else if (gameTemplate === 'Word Search') {
+        endpoint = `/api/game/game-type/word-search/${projectId}`;
+      } else {
+        toast.error('Unknown game type');
+        return;
+      }
+      
+      await api.delete(endpoint);
       setProjects((prev) => prev.filter((p) => p.id !== projectId));
       toast.success("Project deleted successfully!");
-    } catch {
+    } catch (err) {
+      console.error("Failed to delete project:", err);
       toast.error("Failed to delete project. Please try again.");
     }
   };
 
   const handleUpdateStatus = async (gameId: string, isPublish: boolean) => {
     try {
-      await api.patch("/api/game/", {
+      // Endpoint yang benar: PATCH /api/game dengan body game_id dan is_publish
+      console.log('Sending publish request:', { gameId, isPublish });
+      await api.patch('/api/game', {
         game_id: gameId,
         is_publish: isPublish,
       });
@@ -86,8 +98,10 @@ export default function MyProjectsPage() {
       toast.success(
         isPublish ? "Published successfully" : "Unpublished successfully",
       );
-    } catch {
-      toast.error("Failed to update status. Please try again.");
+    } catch (err: any) {
+      console.error("Failed to update publish status:", err);
+      const errorMessage = err?.response?.data?.message || "Failed to update status. Please try again.";
+      toast.error(errorMessage);
     }
   };
 
@@ -142,8 +156,8 @@ export default function MyProjectsPage() {
             <div className="w-full h-full flex flex-col md:flex-row md:items-center gap-4">
               <img
                 src={
-                  project.thumbnail_image
-                    ? `${import.meta.env.VITE_API_URL}/${project.thumbnail_image}`
+                    project.thumbnail_image
+                      ? `${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/${project.thumbnail_image}`
                     : thumbnailPlaceholder
                 }
                 alt={
@@ -180,34 +194,44 @@ export default function MyProjectsPage() {
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-2 mt-6 md:mt-2">
-                  {project.is_published ? (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-7"
-                      onClick={() => {
-                        navigate(
-                          `/${project.game_template_slug}/play/${project.id}`,
-                        );
-                      }}
-                    >
-                      <Play />
-                      Play
-                    </Button>
-                  ) : null}
                   <Button
                     variant="outline"
                     size="sm"
                     className="h-7"
                     onClick={() => {
-                      navigate(
-                        `/${project.game_template_slug}/edit/${project.id}`,
-                      );
+                      // Navigate to edit page based on game type
+                      if (project.game_template === 'Quiz') {
+                        navigate(`/quiz/edit/${project.id}`);
+                      } else if (project.game_template === 'Word Search') {
+                        navigate(`/edit-word-search/${project.id}`);
+                      } else {
+                        navigate(`/quiz/edit/${project.id}`);
+                      }
                     }}
                   >
                     <Edit />
                     Edit
                   </Button>
+                  {project.is_published && (
+                    <Button
+                      variant="default"
+                      size="sm"
+                      className="h-7 bg-green-600 hover:bg-green-700"
+                      onClick={() => {
+                        // Navigate to play page - check game template name
+                        if (project.game_template === 'Quiz') {
+                          navigate(`/quiz/play/${project.id}`);
+                        } else if (project.game_template === 'Word Search') {
+                          navigate(`/word-search-play/${project.id}`);
+                        } else {
+                          navigate(`/quiz/play/${project.id}`);
+                        }
+                      }}
+                    >
+                      <Play />
+                      Play
+                    </Button>
+                  )}
                   {project.is_published ? (
                     <Button
                       variant="outline"
@@ -260,10 +284,7 @@ export default function MyProjectsPage() {
                         <AlertDialogAction
                           className="bg-red-600 hover:bg-red-700"
                           onClick={() => {
-                            handleDeleteProject(
-                              project.game_template_slug,
-                              project.id,
-                            );
+                            handleDeleteProject(project.id, project.game_template);
                           }}
                         >
                           Yes, Delete

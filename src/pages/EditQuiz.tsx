@@ -102,7 +102,7 @@ function EditQuiz() {
 
         if (data.thumbnail_image) {
           setThumbnailPreview(
-            `${import.meta.env.VITE_API_URL}/${data.thumbnail_image}`,
+            `${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/${data.thumbnail_image}`,
           );
         } else setThumbnailPreview(null);
         setThumbnail(null);
@@ -114,7 +114,7 @@ function EditQuiz() {
           questionImages: q.question_image
             ? q.question_image.startsWith("http")
               ? q.question_image
-              : `${import.meta.env.VITE_API_URL}/${q.question_image}`
+              : `${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/${q.question_image}`
             : null,
           answers: (q.answers || []).map((a: ApiAnswer) => ({
             text: a.answer_text ?? "",
@@ -146,7 +146,8 @@ function EditQuiz() {
           isAnswerRandomized: !!data.game_json?.is_answer_randomized,
           scorePerQuestion: Number(data.game_json?.score_per_question ?? 1),
         });
-      } catch {
+      } catch (err) {
+        console.error(err);
         toast.error("Failed to load quiz data");
       } finally {
         setLoading(false);
@@ -350,7 +351,8 @@ function EditQuiz() {
       });
       toast.success("Quiz updated successfully!");
       navigate("/my-projects");
-    } catch {
+    } catch (err) {
+      console.error(err);
       toast.error("Failed to update quiz");
     } finally {
       setLoading(false);
